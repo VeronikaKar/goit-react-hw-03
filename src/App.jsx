@@ -1,68 +1,40 @@
-import { useEffect, useState } from "react";
-import Description from "./components/Description/Description";
-import Feedback from "./components/Feedback/Feedback";
-import Options from "./components/Options/Options";
-import Notification from "./components/Notification/Notification";
+import { useState, useEffect } from "react";
+import initialContacts from "./data/contacts.json";
+import ContactForm from "./components/ContactForm/ContactForm";
+import ContactList from "./components/ContactList/ContactList";
+import SearchBox from "./components/SearchBox/SearchBox";
+import { useLocalStorage } from "./hooks/useLocalStorage.js";
+import s from "./App.module.css";
 
 function App() {
-  const feedbackDefault = {
-    good: 0,
-    neutral: 0,
-    bad: 0,
-  };
-
-  const [state, setState] = useState(() => {
-    const savedState = localStorage.getItem("feedbackState");
-    if (savedState !== null) {
-      return JSON.parse(savedState);
-    }
-    return feedbackDefault;
-  });
+  const [contacts, setContacts] = useLocalStorage("contacts", initialContacts);
+  const [filter, setFilter] = useState("");
 
   useEffect(() => {
-    localStorage.setItem("feedbackState", JSON.stringify(state));
-  }, [state]);
+    localStorage.setItem("contacts", JSON.stringify(contacts));
+  }, [contacts]);
 
-  const totalFeedback = state.good + state.neutral + state.bad;
-
-  const positivePercentage = Math.round((state.good / totalFeedback) * 100);
-
-  const updateFeedback = (feedbackType) => {
-    setState((prevState) => ({
-      ...prevState,
-      [feedbackType]: prevState[feedbackType] + 1,
-    }));
+  const addContact = (newContact) => {
+    setContacts((prevContacts) => [...prevContacts, newContact]);
   };
 
-  const handleResetClick = () => {
-    setState(feedbackDefault);
+  const deleteContact = (contactId) => {
+    setContacts((prevContacts) =>
+      prevContacts.filter((contact) => contact.id !== contactId)
+    );
   };
+
+  const visibleContacts = contacts.filter((contact) =>
+    contact.name.toLowerCase().includes(filter.toLowerCase())
+  );
 
   return (
-    <>
-      <Description
-        title="Sip Happens Café"
-        description="Please leave your feedback about our service by selecting one of the options below."
-      />
-      <Options
-        good="Good"
-        neutral="Neutral"
-        bad="Bad"
-        reset="Reset"
-        handleResetClick={handleResetClick}
-        updateFeedback={updateFeedback}
-        totalFeedback={totalFeedback}
-      />
-      {totalFeedback ? (
-        <Feedback
-          state={state}
-          totalFeedback={totalFeedback}
-          positivePercentage={positivePercentage}
-        />
-      ) : (
-        <Notification info="No feedback yet" />
-      )}
-    </>
+    <div className={s.app__container}>
+      <h1 className={s.app__title}>Phonebook</h1>
+      <ContactForm onAdd={addContact} />
+      <SearchBox value={filter} onFilter={setFilter} />
+      <ContactList contacts={visibleContacts} onDelete={deleteContact} />
+    </div>
   );
 }
 
